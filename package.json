@@ -1,0 +1,14 @@
+{
+    "name": "intro-manager-monorepo",
+    "private": true,
+    "scripts": {
+        "dev": "vercel dev",
+        "build": "cd client && npm run build",
+        "deploy": "vercel --prod",
+        "client:start": "cd client && npm start",
+        "client:install": "cd client && npm install"
+    },
+    "devDependencies": {
+        "@types/node": "^25.0.9"
+    }
+}
