@@ -1,14 +1,13 @@
 {
-    "name": "intro-manager-monorepo",
-    "private": true,
+    "name": "skill-collection",
     "scripts": {
-        "dev": "vercel dev",
         "build": "cd client && npm run build",
         "deploy": "vercel --prod",
         "client:start": "cd client && npm start",
         "client:install": "cd client && npm install"
     },
     "devDependencies": {
-        "@types/node": "^25.0.9"
+        "@types/node": "^25.0.9",
+        "@vercel/node": "^5.5.23"
     }
 }

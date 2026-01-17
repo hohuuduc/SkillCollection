@@ -1,8 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
-const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
@@ -16,24 +13,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { code } = req.body;
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+        return res.status(500).json({
+            error: 'Server configuration error - missing OAuth credentials'
+        });
+    }
+
+    // Parse body
+    let body = req.body;
+    if (typeof body === 'string') {
+        try {
+            body = JSON.parse(body);
+        } catch {
+            return res.status(400).json({ error: 'Invalid JSON body' });
+        }
+    }
+
+    const code = body?.code;
 
     if (!code) {
         return res.status(400).json({ error: 'Missing code parameter' });
     }
 
     try {
+        const params = new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            code: code
+        });
+
         const response = await fetch('https://github.com/login/oauth/access_token', {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: JSON.stringify({
-                client_id: GITHUB_CLIENT_ID,
-                client_secret: GITHUB_CLIENT_SECRET,
-                code
-            })
+            body: params.toString()
         });
 
         const data = await response.json();

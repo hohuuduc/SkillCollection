@@ -1,5 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+interface GitHubUser {
+    login: string;
+    avatar_url: string;
+    name: string | null;
+    id: number;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
@@ -33,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(response.status).json({ error: 'GitHub API error' });
         }
 
-        const user = await response.json();
+        const user: GitHubUser = await response.json();
 
         res.setHeader('Access-Control-Allow-Origin', '*');
         return res.status(200).json({

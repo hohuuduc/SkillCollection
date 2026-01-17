@@ -55,14 +55,21 @@ export class AuthService {
     async exchangeCodeForToken(code: string): Promise<boolean> {
         try {
             const response = await firstValueFrom(
-                this.http.post<{ access_token: string; error?: string }>('/api/oauth/callback', { code })
+                this.http.post<any>('/api/oauth/callback', { code })
             );
 
-            if (response.access_token) {
-                this.token.set(response.access_token);
+            console.log('OAuth response:', response);
+
+            // GitHub returns snake_case: access_token
+            const accessToken = response.access_token || response.accessToken;
+
+            if (accessToken) {
+                this.token.set(accessToken);
                 await this.loadCurrentUser();
                 return true;
             }
+
+            console.error('No access token in response:', response);
             return false;
         } catch (error) {
             console.error('Token exchange failed:', error);
