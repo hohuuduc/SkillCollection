@@ -57,6 +57,10 @@ export class GithubService {
             body
             url
             createdAt
+            author {
+              login
+              avatarUrl
+            }
             labels(first: 10) {
               nodes {
                 id
@@ -127,14 +131,13 @@ export class GithubService {
 
   // Get Repository ID and Category ID
   private getContext(): Observable<{ repoId: string; categoryId: string }> {
-    if (!this.auth.isAuthenticated()) {
-      return of({ repoId: '', categoryId: '' });
-    }
+    // Works with or without authentication (public repo)
+    const headers = this.auth.isAuthenticated() ? this.headers : new HttpHeaders({ 'Content-Type': 'application/json' });
 
     return this.http.post<any>(GITHUB_API, {
       query: this.getRepoInfoQuery,
       variables: { owner: this.owner, repo: this.repo }
-    }, { headers: this.headers }).pipe(
+    }, { headers }).pipe(
       map(res => {
         const repository = res.data?.repository;
         if (!repository) throw new Error('Repository not found');
@@ -150,23 +153,25 @@ export class GithubService {
           repoId: repository.id,
           categoryId: category.id
         };
-      })
+      }),
+      catchError(() => of({ repoId: '', categoryId: '' }))
     );
   }
 
   getDiscussions(): Observable<Introduction[]> {
-    if (!this.auth.isAuthenticated()) {
-      return of([]);
-    }
+    // Works with or without authentication (public repo)
+    const headers = this.auth.isAuthenticated() ? this.headers : new HttpHeaders({ 'Content-Type': 'application/json' });
 
     return this.getContext().pipe(
       switchMap(ctx => {
+        if (!ctx.categoryId) return of([]);
         return this.http.post<any>(GITHUB_API, {
           query: this.getDiscussionsQuery,
           variables: { owner: this.owner, repo: this.repo, categoryId: ctx.categoryId }
-        }, { headers: this.headers });
+        }, { headers });
       }),
       map(res => {
+        if (Array.isArray(res)) return res; // Already empty array from above
         const nodes = res.data?.repository?.discussions?.nodes || [];
         return nodes.map((node: any) => ({
           ...node,

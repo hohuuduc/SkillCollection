@@ -28,24 +28,8 @@ import hljs from 'highlight.js';
               <input type="text" formControlName="title" placeholder="Introduction Title" class="input-lg">
             </div>
 
-            <!-- Labels Selector -->
-            <div class="labels-section">
-               <label>Labels:</label>
-               <div class="labels-cloud">
-                 <button type="button" 
-                         *ngFor="let label of repoLabels()" 
-                         class="label-chip"
-                         [class.selected]="isLabelSelected(label.id)"
-                         [style.border-color]="'#' + label.color"
-                         (click)="toggleLabel(label.id)">
-                   <span class="dot" [style.background-color]="'#' + label.color"></span>
-                   {{ label.name }}
-                 </button>
-               </div>
-            </div>
-
             <div class="editor-container">
-              <div class="editor-pane">
+              <div class="editor-pane" [class.invalid-pane]="form.get('body')?.invalid && form.get('body')?.touched">
                 <div class="pane-header">Markdown</div>
                 <textarea formControlName="body" placeholder="Write your introduction in Markdown..." (input)="updatePreview()"></textarea>
               </div>
@@ -118,6 +102,7 @@ import hljs from 'highlight.js';
       display: flex;
       flex-direction: column;
       gap: 1rem;
+      height: 75vh;
     }
     
     .input-lg {
@@ -224,6 +209,14 @@ import hljs from 'highlight.js';
       justify-content: flex-end;
       gap: 1rem;
     }
+
+    .input-lg.ng-invalid.ng-touched {
+      border-color: #ef4444;
+    }
+
+    .editor-pane.invalid-pane {
+      border-color: #ef4444;
+    }
   `]
 })
 export class IntroductionEditorComponent {
@@ -289,7 +282,10 @@ export class IntroductionEditorComponent {
   }
 
   save() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     this.loading = true;
     const { title, body } = this.form.value;

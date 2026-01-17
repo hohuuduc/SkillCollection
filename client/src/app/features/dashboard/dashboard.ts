@@ -24,45 +24,61 @@ import { catchError, of } from 'rxjs';
         </div>
       </header>
       
-      <div *ngIf="!auth.isAuthenticated()" class="empty-state">
-        <p>Please configure your GitHub credentials in the sidebar to get started.</p>
-      </div>
+      <!-- Login prompt for creating new -->
+      @if (!auth.isAuthenticated()) {
+        <div class="login-prompt">
+          <p>Login with GitHub to create and manage your introductions.</p>
+        </div>
+      }
 
-      <div *ngIf="auth.isAuthenticated()" class="grid-container">
-        <div *ngFor="let intro of filteredIntroductions()" class="intro-card card">
-          <div class="card-body">
-            <h3 class="card-title">{{ intro.title }}</h3>
-            <div class="card-preview">
-               {{ intro.body | slice:0:150 }}...
-            </div>
-            
-            <div class="labels-row">
-              <span *ngFor="let label of intro.labels" 
-                    class="label-badge"
-                    [style.background-color]="'#' + label.color + '20'"
-                    [style.color]="'#' + label.color"
-                    [style.border-color]="'#' + label.color">
-                {{ label.name }}
-              </span>
-            </div>
-            
-            <div class="card-footer">
-              <span class="date">{{ intro.createdAt | date:'mediumDate' }}</span>
-              <div class="actions">
-                <button class="btn-icon" (click)="openEdit(intro)" title="Edit">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                </button>
-                <button class="btn-icon danger" (click)="deleteItem(intro)" title="Delete">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
+      <div class="grid-container">
+        @for (intro of filteredIntroductions(); track intro.id) {
+          <div class="intro-card card">
+            <div class="card-body">
+              <!-- Author info -->
+              <div class="card-author">
+                <img [src]="intro.author?.avatarUrl" [alt]="intro.author?.login" class="author-avatar">
+                <span class="author-name">{{ intro.author?.login }}</span>
+              </div>
+              
+              <h3 class="card-title">{{ intro.title }}</h3>
+              <div class="card-preview">
+                 {{ intro.body | slice:0:150 }}...
+              </div>
+              
+              <div class="labels-row">
+                @for (label of intro.labels; track label.id) {
+                  <span class="label-badge"
+                        [style.background-color]="'#' + label.color + '20'"
+                        [style.color]="'#' + label.color"
+                        [style.border-color]="'#' + label.color">
+                    {{ label.name }}
+                  </span>
+                }
+              </div>
+              
+              <div class="card-footer">
+                <span class="date">{{ intro.createdAt | date:'mediumDate' }}</span>
+                @if (auth.isAuthenticated() && intro.author?.login === auth.user()?.login) {
+                  <div class="actions">
+                    <button class="btn-icon" (click)="openEdit(intro)" title="Edit">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </button>
+                    <button class="btn-icon danger" (click)="deleteItem(intro)" title="Delete">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                  </div>
+                }
               </div>
             </div>
           </div>
-        </div>
+        }
         
-        <div *ngIf="filteredIntroductions().length === 0" class="empty-state">
-           No introductions found matching 
-        </div>
+        @if (filteredIntroductions().length === 0) {
+          <div class="empty-state">
+             No introductions found
+          </div>
+        }
       </div>
     </div>
     
@@ -95,6 +111,20 @@ import { catchError, of } from 'rxjs';
       max-width: 1600px;
       margin: 0 auto;
       height: inherit;
+    }
+    
+    .login-prompt {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border: 1px solid #bae6fd;
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      color: #0369a1;
+      font-size: 0.875rem;
+    }
+    
+    .login-prompt p {
+      margin: 0;
     }
     
     .header {
@@ -157,6 +187,28 @@ import { catchError, of } from 'rxjs';
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 1.5rem;
+    }
+    
+    .card-author {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .author-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    
+    .author-name {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-secondary);
     }
     
     .card-body {

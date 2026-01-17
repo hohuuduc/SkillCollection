@@ -6,6 +6,10 @@ export interface Introduction {
     url: string;
     createdAt: string;
     labels: Label[];
+    author: {
+        login: string;
+        avatarUrl: string;
+    };
 }
 
 export interface Label {
