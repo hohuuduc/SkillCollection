@@ -46,7 +46,7 @@ export class AuthService {
     loginWithGitHub() {
         const clientId = environment.github.clientId;
         const redirectUri = `${window.location.origin}/callback`;
-        const scope = 'read:user public_repo';
+        const scope = 'read:user repo';
 
         window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
     }
