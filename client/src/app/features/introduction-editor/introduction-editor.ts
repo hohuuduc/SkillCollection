@@ -9,10 +9,10 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import hljs from 'highlight.js';
 
 @Component({
-    selector: 'app-introduction-editor',
-    standalone: true,
-    imports: [CommonModule, ReactiveFormsModule],
-    template: `
+  selector: 'app-introduction-editor',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  template: `
     <div class="modal-overlay" (click)="close.emit()">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <header class="modal-header">
@@ -66,7 +66,7 @@ import hljs from 'highlight.js';
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -85,7 +85,6 @@ import hljs from 'highlight.js';
       background: var(--bg-primary);
       width: 90%;
       max-width: 1000px;
-      height: 85vh;
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-md);
       display: flex;
@@ -228,86 +227,86 @@ import hljs from 'highlight.js';
   `]
 })
 export class IntroductionEditorComponent {
-    @Input() set introduction(value: Introduction | null) {
-        this._intro = value;
-        if (value) {
-            this.form.patchValue({
-                title: value.title,
-                body: value.body
-            });
-            this.selectedLabelIds = value.labels.map(l => l.id);
-            this.updatePreview();
-        } else {
-            this.form.reset();
-            this.selectedLabelIds = [];
-            this.previewHtml = '';
-        }
+  @Input() set introduction(value: Introduction | null) {
+    this._intro = value;
+    if (value) {
+      this.form.patchValue({
+        title: value.title,
+        body: value.body
+      });
+      this.selectedLabelIds = value.labels.map(l => l.id);
+      this.updatePreview();
+    } else {
+      this.form.reset();
+      this.selectedLabelIds = [];
+      this.previewHtml = '';
     }
+  }
 
-    @Output() close = new EventEmitter<void>();
-    @Output() saved = new EventEmitter<void>();
+  @Output() close = new EventEmitter<void>();
+  @Output() saved = new EventEmitter<void>();
 
-    private _intro: Introduction | null = null;
+  private _intro: Introduction | null = null;
 
-    isEdit = computed(() => !!this._intro);
+  isEdit = computed(() => !!this._intro);
 
-    github = inject(GithubService);
-    fb = inject(FormBuilder);
-    sanitizer = inject(DomSanitizer);
+  github = inject(GithubService);
+  fb = inject(FormBuilder);
+  sanitizer = inject(DomSanitizer);
 
-    repoLabels = toSignal(this.github.getRepoLabels(), { initialValue: [] });
+  repoLabels = toSignal(this.github.getRepoLabels(), { initialValue: [] });
 
-    form = this.fb.group({
-        title: ['', Validators.required],
-        body: ['', Validators.required]
+  form = this.fb.group({
+    title: ['', Validators.required],
+    body: ['', Validators.required]
+  });
+
+  selectedLabelIds: string[] = [];
+  previewHtml: SafeHtml = '';
+  loading = false;
+
+  updatePreview() {
+    const rawMarkdown = this.form.get('body')?.value || '';
+    const html = marked.parse(rawMarkdown, {
+      async: false,
+      gfm: true,
+      breaks: true
+    }) as string;
+
+    this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  isLabelSelected(id: string): boolean {
+    return this.selectedLabelIds.includes(id);
+  }
+
+  toggleLabel(id: string) {
+    if (this.selectedLabelIds.includes(id)) {
+      this.selectedLabelIds = this.selectedLabelIds.filter(l => l !== id);
+    } else {
+      this.selectedLabelIds.push(id);
+    }
+  }
+
+  save() {
+    if (this.form.invalid) return;
+
+    this.loading = true;
+    const { title, body } = this.form.value;
+
+    const obs$ = this.isEdit()
+      ? this.github.updateIntroduction(this._intro!.id, title!, body!, this.selectedLabelIds)
+      : this.github.createIntroduction(title!, body!, this.selectedLabelIds);
+
+    obs$.subscribe({
+      next: () => {
+        this.loading = false;
+        this.saved.emit();
+      },
+      error: (err) => {
+        this.loading = false;
+        alert('Error saving: ' + err.message);
+      }
     });
-
-    selectedLabelIds: string[] = [];
-    previewHtml: SafeHtml = '';
-    loading = false;
-
-    updatePreview() {
-        const rawMarkdown = this.form.get('body')?.value || '';
-        const html = marked.parse(rawMarkdown, {
-            async: false,
-            gfm: true,
-            breaks: true
-        }) as string;
-
-        this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(html);
-    }
-
-    isLabelSelected(id: string): boolean {
-        return this.selectedLabelIds.includes(id);
-    }
-
-    toggleLabel(id: string) {
-        if (this.selectedLabelIds.includes(id)) {
-            this.selectedLabelIds = this.selectedLabelIds.filter(l => l !== id);
-        } else {
-            this.selectedLabelIds.push(id);
-        }
-    }
-
-    save() {
-        if (this.form.invalid) return;
-
-        this.loading = true;
-        const { title, body } = this.form.value;
-
-        const obs$ = this.isEdit()
-            ? this.github.updateIntroduction(this._intro!.id, title!, body!, this.selectedLabelIds)
-            : this.github.createIntroduction(title!, body!, this.selectedLabelIds);
-
-        obs$.subscribe({
-            next: () => {
-                this.loading = false;
-                this.saved.emit();
-            },
-            error: (err) => {
-                this.loading = false;
-                alert('Error saving: ' + err.message);
-            }
-        });
-    }
+  }
 }

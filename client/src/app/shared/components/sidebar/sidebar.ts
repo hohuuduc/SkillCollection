@@ -13,7 +13,7 @@ import { environment } from '../../../../environments/environment';
   template: `
     <aside class="sidebar-container">
       <div class="brand">
-        <h2>Intro Manager</h2>
+        <h2>Skill Collection</h2>
       </div>
 
       <!-- Auth Section -->

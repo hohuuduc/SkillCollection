@@ -1,32 +1,27 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GithubService } from '../../core/services/github.service';
 import { AuthService } from '../../core/services/auth.service';
+import { UiService } from '../../core/services/ui.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Introduction } from '../../core/models/types';
 import { IntroductionEditorComponent } from '../introduction-editor/introduction-editor';
 import { catchError, of } from 'rxjs';
 
 @Component({
-    selector: 'app-dashboard',
-    standalone: true,
-    imports: [CommonModule, FormsModule, IntroductionEditorComponent],
-    template: `
+  selector: 'app-dashboard',
+  standalone: true,
+  imports: [CommonModule, FormsModule, IntroductionEditorComponent],
+  template: `
     <div class="dashboard-container">
       <header class="header">
         <div class="header-left">
-          <h1>Introductions</h1>
           <div class="search-box">
              <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" placeholder="Search introductions..." class="search-input">
              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </div>
         </div>
-        
-        <button class="btn btn-primary" (click)="openCreate()">
-           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-           New Introduction
-        </button>
       </header>
       
       <div *ngIf="!auth.isAuthenticated()" class="empty-state">
@@ -66,7 +61,7 @@ import { catchError, of } from 'rxjs';
         </div>
         
         <div *ngIf="filteredIntroductions().length === 0" class="empty-state">
-           No introductions found matching "{{ searchQuery() }}"
+           No introductions found matching 
         </div>
       </div>
     </div>
@@ -78,12 +73,28 @@ import { catchError, of } from 'rxjs';
       (close)="closeEditor()"
       (saved)="onSaved()">
     </app-introduction-editor>
+    
+    <!-- Floating Action Button -->
+    @if (auth.isAuthenticated()) {
+      <button class="fab" (click)="openCreate()" title="New Introduction">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+    }
   `,
-    styles: [`
+  styles: [`
+    :host {
+      display: block;
+      height: inherit;
+    }
+
     .dashboard-container {
       padding: 2rem;
-      max-width: 1200px;
+      max-width: 1600px;
       margin: 0 auto;
+      height: inherit;
     }
     
     .header {
@@ -231,60 +242,99 @@ import { catchError, of } from 'rxjs';
       color: var(--text-secondary);
       grid-column: 1 / -1;
     }
+    
+    .fab {
+      position: fixed;
+      bottom: 2rem;
+      left: calc(280px + 2rem);
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      z-index: 100;
+    }
+    
+    .fab:hover {
+      background: var(--primary-hover);
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+    }
+    
+    .fab:active {
+      transform: scale(0.95);
+    }
   `]
 })
 export class DashboardComponent {
-    auth = inject(AuthService);
-    github = inject(GithubService);
+  auth = inject(AuthService);
+  github = inject(GithubService);
+  private ui = inject(UiService);
 
-    introductions = toSignal(this.github.getDiscussions().pipe(catchError(() => of([]))), { initialValue: [] });
-    searchQuery = signal('');
+  introductions = toSignal(this.github.getDiscussions().pipe(catchError(() => of([]))), { initialValue: [] });
+  searchQuery = signal('');
 
-    filteredIntroductions = computed(() => {
-        const list = this.introductions() as Introduction[] || []; // Cast to ensure array
-        const query = this.searchQuery().toLowerCase().trim();
-
-        if (!query) return list;
-
-        return list.filter(item =>
-            item.title.toLowerCase().includes(query) ||
-            item.body.toLowerCase().includes(query)
-        );
+  constructor() {
+    // Listen for create trigger from sidebar
+    effect(() => {
+      if (this.ui.openCreateEditor()) {
+        this.openCreate();
+        this.ui.resetCreate();
+      }
     });
+  }
 
-    showEditor = false;
-    selectedIntro: Introduction | null = null;
+  filteredIntroductions = computed(() => {
+    const list = this.introductions() as Introduction[] || []; // Cast to ensure array
+    const query = this.searchQuery().toLowerCase().trim();
 
-    openCreate() {
-        this.selectedIntro = null;
-        this.showEditor = true;
+    if (!query) return list;
+
+    return list.filter(item =>
+      item.title.toLowerCase().includes(query) ||
+      item.body.toLowerCase().includes(query)
+    );
+  });
+
+  showEditor = false;
+  selectedIntro: Introduction | null = null;
+
+  openCreate() {
+    this.selectedIntro = null;
+    this.showEditor = true;
+  }
+
+  openEdit(intro: Introduction) {
+    this.selectedIntro = intro;
+    this.showEditor = true;
+  }
+
+  closeEditor() {
+    this.showEditor = false;
+    this.selectedIntro = null;
+  }
+
+  onSaved() {
+    this.closeEditor();
+    // Refresh data logic needed here, ideally via signal refresh or BehaviorSubject in service
+    // For MVP, user might need to refresh page or we implement a refresh trigger in service
+    window.location.reload(); // Quick MVP fix
+  }
+
+  deleteItem(intro: Introduction) {
+    if (confirm('Are you sure you want to delete this introduction?')) {
+      this.github.deleteIntroduction(intro.id).subscribe({
+        next: () => {
+          window.location.reload();
+        },
+        error: (err) => alert('Failed to delete: ' + err.message)
+      });
     }
-
-    openEdit(intro: Introduction) {
-        this.selectedIntro = intro;
-        this.showEditor = true;
-    }
-
-    closeEditor() {
-        this.showEditor = false;
-        this.selectedIntro = null;
-    }
-
-    onSaved() {
-        this.closeEditor();
-        // Refresh data logic needed here, ideally via signal refresh or BehaviorSubject in service
-        // For MVP, user might need to refresh page or we implement a refresh trigger in service
-        window.location.reload(); // Quick MVP fix
-    }
-
-    deleteItem(intro: Introduction) {
-        if (confirm('Are you sure you want to delete this introduction?')) {
-            this.github.deleteIntroduction(intro.id).subscribe({
-                next: () => {
-                    window.location.reload();
-                },
-                error: (err) => alert('Failed to delete: ' + err.message)
-            });
-        }
-    }
+  }
 }

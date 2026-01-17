@@ -58,8 +58,6 @@ export class AuthService {
                 this.http.post<any>('/api/oauth/callback', { code })
             );
 
-            console.log('OAuth response:', response);
-
             // GitHub returns snake_case: access_token
             const accessToken = response.access_token || response.accessToken;
 
