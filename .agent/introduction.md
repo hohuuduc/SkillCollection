@@ -1,8 +1,8 @@
-# Intro Manager - System Blueprint & Strategic Cache
+# Skill Collection - System Blueprint & Strategic Cache
 
 ## App Description & Functions
 
-**Intro Manager** là ứng dụng Angular quản lý "Agent Introductions" sử dụng GitHub Discussions làm backend storage. Users đăng nhập qua GitHub OAuth và có thể CRUD introductions trực tiếp trên repository của họ.
+**Skill Collection** là ứng dụng Angular quản lý "Agent Introductions" sử dụng GitHub Discussions làm backend storage. Users đăng nhập qua GitHub OAuth và có thể CRUD introductions trực tiếp trên repository của họ.
 
 ### Core Features
 - **GitHub OAuth Authentication**: Login bằng tài khoản GitHub cá nhân (giống giscus)
