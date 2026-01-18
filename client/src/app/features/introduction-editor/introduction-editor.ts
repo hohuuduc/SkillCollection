@@ -16,7 +16,7 @@ import hljs from 'highlight.js';
     <div class="modal-overlay" (click)="close.emit()">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <header class="modal-header">
-          <h2>{{ isEdit() ? 'Edit Introduction' : 'New Introduction' }}</h2>
+          <h2>{{ getTitle() }}</h2>
           <button class="close-btn" (click)="close.emit()">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
@@ -25,27 +25,40 @@ import hljs from 'highlight.js';
         <form [formGroup]="form" (ngSubmit)="save()">
           <div class="form-body">
             <div class="form-group">
-              <input type="text" formControlName="title" placeholder="Introduction Title" class="input-lg">
+              @if (readOnly) {
+                <div class="input-lg read-only-title">{{ form.get('title')?.value }}</div>
+              } @else {
+                <input type="text" formControlName="title" placeholder="Introduction Title" class="input-lg">
+              }
             </div>
 
             <div class="editor-container">
-              <div class="editor-pane" [class.invalid-pane]="form.get('body')?.invalid && form.get('body')?.touched">
-                <div class="pane-header">Markdown</div>
-                <textarea formControlName="body" placeholder="Write your introduction in Markdown..." (input)="updatePreview()"></textarea>
-              </div>
+              @if (!readOnly) {
+                <div class="editor-pane" [class.invalid-pane]="form.get('body')?.invalid && form.get('body')?.touched">
+                  <div class="pane-header">Markdown</div>
+                  <textarea formControlName="body" placeholder="Write your introduction in Markdown..." (input)="updatePreview()"></textarea>
+                </div>
+              }
               <div class="preview-pane">
-                <div class="pane-header">Preview</div>
+                <div class="pane-header">
+                  <span>Preview</span>
+                  <button type="button" class="btn-copy" (click)="copyRaw()" title="Copy Raw Markdown">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                </div>
                 <div class="markdown-content" [innerHTML]="previewHtml"></div>
               </div>
             </div>
           </div>
 
-          <div class="modal-footer">
-            <button type="button" class="btn btn-ghost" (click)="close.emit()">Cancel</button>
-            <button type="submit" class="btn btn-primary" [disabled]="form.invalid || loading">
-              {{ loading ? 'Saving...' : 'Save' }}
-            </button>
-          </div>
+          @if (!readOnly) {
+            <div class="modal-footer">
+              <button type="button" class="btn btn-ghost" (click)="close.emit()">Cancel</button>
+              <button type="submit" class="btn btn-primary" [disabled]="form.invalid || loading">
+                {{ loading ? 'Saving...' : 'Save' }}
+              </button>
+            </div>
+          }
         </form>
       </div>
     </div>
@@ -175,6 +188,26 @@ import hljs from 'highlight.js';
       font-weight: 600;
       color: var(--text-secondary);
       text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn-copy {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0.125rem;
+      border-radius: 0.25rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+    }
+
+    .btn-copy:hover {
+      background-color: var(--bg-hover);
+      color: var(--text-primary);
     }
     
     textarea {
@@ -217,6 +250,13 @@ import hljs from 'highlight.js';
     .editor-pane.invalid-pane {
       border-color: #ef4444;
     }
+
+    .read-only-title {
+      border: none;
+      padding-left: 0;
+      font-weight: 700;
+      font-size: 1.5rem;
+    }
   `]
 })
 export class IntroductionEditorComponent {
@@ -235,6 +275,8 @@ export class IntroductionEditorComponent {
       this.previewHtml = '';
     }
   }
+
+  @Input() readOnly = false;
 
   @Output() close = new EventEmitter<void>();
   @Output() saved = new EventEmitter<void>();
@@ -282,8 +324,8 @@ export class IntroductionEditorComponent {
   }
 
   save() {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
+    if (this.readOnly || this.form.invalid) {
+      if (!this.readOnly) this.form.markAllAsTouched();
       return;
     }
 
@@ -303,6 +345,19 @@ export class IntroductionEditorComponent {
         this.loading = false;
         alert('Error saving: ' + err.message);
       }
+    });
+  }
+
+  getTitle(): string {
+    if (this.readOnly) return 'Introduction Details';
+    return this.isEdit() ? 'Edit Introduction' : 'New Introduction';
+  }
+
+  copyRaw() {
+    const rawMarkdown = this.form.get('body')?.value || '';
+    navigator.clipboard.writeText(rawMarkdown).then(() => {
+      // Optional: Could add a toast or temporary checkmark change
+      // For now, simpler is better
     });
   }
 }

@@ -34,11 +34,11 @@ import { catchError, of } from 'rxjs';
       <div class="grid-container">
         @for (intro of filteredIntroductions(); track intro.id) {
           <div class="intro-card card">
-            <div class="card-body">
+            <div class="card-body" (click)="openView(intro)">
               <!-- Author info -->
               <div class="card-author">
-                <img [src]="intro.author?.avatarUrl" [alt]="intro.author?.login" class="author-avatar">
-                <span class="author-name">{{ intro.author?.login }}</span>
+                <img [src]="intro.author.avatarUrl" [alt]="intro.author.login" class="author-avatar">
+                <span class="author-name">{{ intro.author.login }}</span>
               </div>
               
               <h3 class="card-title">{{ intro.title }}</h3>
@@ -59,12 +59,12 @@ import { catchError, of } from 'rxjs';
               
               <div class="card-footer">
                 <span class="date">{{ intro.createdAt | date:'mediumDate' }}</span>
-                @if (auth.isAuthenticated() && intro.author?.login === auth.user()?.login) {
+                @if (auth.isAuthenticated() && intro.author.login === auth.user()?.login) {
                   <div class="actions">
-                    <button class="btn-icon" (click)="openEdit(intro)" title="Edit">
+                    <button class="btn-icon" (click)="$event.stopPropagation(); openEdit(intro)" title="Edit">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                     </button>
-                    <button class="btn-icon danger" (click)="deleteItem(intro)" title="Delete">
+                    <button class="btn-icon danger" (click)="$event.stopPropagation(); deleteItem(intro)" title="Delete">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     </button>
                   </div>
@@ -86,6 +86,7 @@ import { catchError, of } from 'rxjs';
     <app-introduction-editor 
       *ngIf="showEditor"
       [introduction]="selectedIntro"
+      [readOnly]="viewMode"
       (close)="closeEditor()"
       (saved)="onSaved()">
     </app-introduction-editor>
@@ -216,6 +217,7 @@ import { catchError, of } from 'rxjs';
       display: flex;
       flex-direction: column;
       height: 100%;
+      user-select: none;
     }
     
     .card-title {
@@ -343,8 +345,20 @@ export class DashboardComponent {
   }
 
   filteredIntroductions = computed(() => {
-    const list = this.introductions() as Introduction[] || []; // Cast to ensure array
+    let list = this.introductions() as Introduction[] || []; // Cast to ensure array
     const query = this.searchQuery().toLowerCase().trim();
+    const currentUser = this.auth.user();
+
+    // Filter by 'My Collection' if enabled
+    if (this.ui.filterByMyself() && currentUser) {
+      list = list.filter(item => item.author?.login === currentUser.login);
+    }
+
+    // Filter by Label if selected
+    const selectedLabel = this.ui.selectedLabelId();
+    if (selectedLabel) {
+      list = list.filter(item => item.labels.some(l => l.id === selectedLabel));
+    }
 
     if (!query) return list;
 
@@ -355,15 +369,24 @@ export class DashboardComponent {
   });
 
   showEditor = false;
+  viewMode = false;
   selectedIntro: Introduction | null = null;
 
   openCreate() {
     this.selectedIntro = null;
+    this.viewMode = false;
     this.showEditor = true;
   }
 
   openEdit(intro: Introduction) {
     this.selectedIntro = intro;
+    this.viewMode = false;
+    this.showEditor = true;
+  }
+
+  openView(intro: Introduction) {
+    this.selectedIntro = intro;
+    this.viewMode = true;
     this.showEditor = true;
   }
 

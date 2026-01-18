@@ -2,6 +2,7 @@ import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 import { GithubService } from '../../../core/services/github.service';
+import { UiService } from '../../../core/services/ui.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
@@ -46,8 +47,19 @@ import { environment } from '../../../../environments/environment';
       <div class="section" *ngIf="auth.isAuthenticated()">
         <h3>Labels</h3>
         <div class="labels-list">
+          <button class="label-btn" 
+                  [style.border-color]="ui.filterByMyself() ? 'var(--primary)' : 'transparent'"
+                  [class.active]="ui.filterByMyself()"
+                  (click)="ui.toggleMyCollection()">
+            <span class="color-dot" [style.background-color]="ui.filterByMyself() ? 'var(--primary)' : '#ccc'"></span>
+            My Collection
+          </button>
+          <div class="separator"></div>
           @for (label of labels(); track label.id) {
-            <button class="label-btn" [style.border-color]="'#' + label.color">
+            <button class="label-btn" 
+                    [style.border-color]="ui.selectedLabelId() === label.id ? '#' + label.color : 'transparent'"
+                    [class.active]="ui.selectedLabelId() === label.id"
+                    (click)="ui.toggleLabel(label.id)">
               <span class="color-dot" [style.background-color]="'#' + label.color"></span>
               {{ label.name }}
             </button>
@@ -161,17 +173,30 @@ import { environment } from '../../../../environments/environment';
       border-radius: var(--radius-sm);
       color: var(--text-primary);
       text-align: left;
+      text-align: left;
       font-size: 0.875rem;
+      transition: all 0.2s;
     }
     
     .label-btn:hover {
       background-color: var(--bg-hover);
+    }
+
+    .label-btn.active {
+      background-color: var(--bg-hover);
+    }
+
+    .separator {
+      height: 1px;
+      background-color: var(--border-color);
+      margin: 0.5rem 0;
     }
     
     .color-dot {
       width: 0.5rem;
       height: 0.5rem;
       border-radius: 50%;
+      background-color: rgb(204, 204, 204);
     }
     
     .empty-text {
@@ -184,6 +209,7 @@ import { environment } from '../../../../environments/environment';
 export class SidebarComponent {
   auth = inject(AuthService);
   github = inject(GithubService);
+  ui = inject(UiService);
 
   repoOwner = environment.github.owner;
   repoName = environment.github.repo;
