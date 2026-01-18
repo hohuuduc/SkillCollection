@@ -4,10 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { GithubService } from '../../core/services/github.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UiService } from '../../core/services/ui.service';
+import { LoadingService } from '../../core/services/loading.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Introduction } from '../../core/models/types';
 import { IntroductionEditorComponent } from '../introduction-editor/introduction-editor';
-import { catchError, of } from 'rxjs';
+import { catchError, of, tap, finalize } from 'rxjs';
+
 
 @Component({
   selector: 'app-dashboard',
@@ -330,8 +332,15 @@ export class DashboardComponent {
   auth = inject(AuthService);
   github = inject(GithubService);
   private ui = inject(UiService);
+  private loadingService = inject(LoadingService);
 
-  introductions = toSignal(this.github.getDiscussions().pipe(catchError(() => of([]))), { initialValue: [] });
+  introductions = toSignal(
+    this.github.getDiscussions().pipe(
+      catchError(() => of([])),
+      finalize(() => this.loadingService.setDataLoaded())
+    ),
+    { initialValue: [] }
+  );
   searchQuery = signal('');
 
   constructor() {
@@ -343,6 +352,7 @@ export class DashboardComponent {
       }
     });
   }
+
 
   filteredIntroductions = computed(() => {
     let list = this.introductions() as Introduction[] || []; // Cast to ensure array

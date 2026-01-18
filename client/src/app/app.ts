@@ -1,10 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from './shared/components/sidebar/sidebar';
+import { LoadingService } from './core/services/loading.service';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
   imports: [RouterOutlet, SidebarComponent],
   template: `
     <div class="app-layout">
@@ -31,4 +31,7 @@ import { SidebarComponent } from './shared/components/sidebar/sidebar';
     }
   `]
 })
-export class AppComponent { }
+export class AppComponent {
+  // Inject LoadingService to ensure it's initialized early
+  private readonly loadingService = inject(LoadingService);
+}

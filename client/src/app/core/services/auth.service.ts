@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { firstValueFrom } from 'rxjs';
+import { LoadingService } from './loading.service';
 
 export interface GitHubUser {
     login: string;
@@ -17,6 +18,7 @@ export interface GitHubUser {
 export class AuthService {
     private router = inject(Router);
     private http = inject(HttpClient);
+    private loadingService = inject(LoadingService);
 
     // Signals
     readonly token = signal<string>(localStorage.getItem('github_token') || '');
@@ -36,9 +38,12 @@ export class AuthService {
             }
         });
 
-        // Load user if token exists
+        // Load user if token exists, otherwise mark auth as complete
         if (this.token()) {
             this.loadCurrentUser();
+        } else {
+            // No token, auth check complete
+            this.loadingService.setAuthLoaded();
         }
     }
 
@@ -68,9 +73,11 @@ export class AuthService {
             }
 
             console.error('No access token in response:', response);
+            this.loadingService.setAuthLoaded();
             return false;
         } catch (error) {
             console.error('Token exchange failed:', error);
+            this.loadingService.setAuthLoaded();
             return false;
         }
     }
@@ -87,6 +94,9 @@ export class AuthService {
         } catch (error) {
             console.error('Load user failed:', error);
             this.user.set(null);
+        } finally {
+            // Mark auth as complete regardless of success/failure
+            this.loadingService.setAuthLoaded();
         }
     }
 
@@ -96,3 +106,4 @@ export class AuthService {
         this.router.navigate(['/']);
     }
 }
+
